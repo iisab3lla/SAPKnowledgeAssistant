@@ -11,6 +11,7 @@ from app.services.gemini_service import (
     DEFAULT_MODEL,
     DEFAULT_TIMEOUT_MS,
     DOTENV_PATH,
+    GeminiAuthenticationError,
     GeminiConfigurationError,
     GeminiHTTPError,
     GeminiQuotaError,
@@ -77,6 +78,7 @@ class GeminiServiceTests(unittest.TestCase):
     def test_api_errors_are_mapped_without_exposing_details(self) -> None:
         error_cases = (
             (429, GeminiQuotaError),
+            (403, GeminiAuthenticationError),
             (408, GeminiTimeoutError),
             (503, GeminiUnavailableError),
             (400, GeminiHTTPError),

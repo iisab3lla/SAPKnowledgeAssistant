@@ -9,12 +9,27 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app.models.document import DocumentChunk
 from app.services.agent_service import (
+    GEMINI_AUTHENTICATION_MESSAGE,
+    GEMINI_CONNECTION_MESSAGE,
+    GEMINI_CONFIGURATION_MESSAGE,
     GEMINI_ERROR_MESSAGE,
+    GEMINI_QUOTA_MESSAGE,
+    GEMINI_TIMEOUT_MESSAGE,
+    GEMINI_UNAVAILABLE_MESSAGE,
     NO_CONTEXT_MESSAGE,
     AgentInputError,
     AgentService,
 )
-from app.services.gemini_service import GeminiHTTPError
+from app.services.gemini_service import (
+    GeminiAuthenticationError,
+    GeminiConnectionError,
+    GeminiConfigurationError,
+    GeminiHTTPError,
+    GeminiQuotaError,
+    GeminiServiceError,
+    GeminiTimeoutError,
+    GeminiUnavailableError,
+)
 from app.services.retriever import RetrievalResult
 from app.services.source_formatter import SourceReference
 
@@ -73,6 +88,35 @@ class AgentServiceTests(unittest.TestCase):
         self.assertIn("SAP BTP oferece", prompt)
         self.assertNotIn("Knowledge Base inteira", prompt)
 
+    def test_gemini_answer_is_formatted_for_display(self) -> None:
+        retriever = MagicMock()
+        retriever.search.return_value = [make_result()]
+        gemini = MagicMock()
+        gemini.generate_text.return_value = '''```json
+{"answer": "## SAP BTP\\n\\nO **SAP BTP** permite `integrar` sistemas.", "sources": []}
+```'''
+        service = AgentService(retriever=retriever, gemini_service=gemini)
+
+        response = service.ask("O que é SAP BTP?")
+
+        self.assertEqual(
+            response["answer"],
+            "SAP BTP\n\nO SAP BTP permite integrar sistemas.",
+        )
+
+    def test_prompt_requires_natural_answer_without_internal_details(self) -> None:
+        retriever = MagicMock()
+        retriever.search.return_value = [make_result()]
+        gemini = MagicMock()
+        gemini.generate_text.return_value = "Resposta natural."
+        service = AgentService(retriever=retriever, gemini_service=gemini)
+
+        service.ask("O que é SAP BTP?")
+
+        prompt = gemini.generate_text.call_args.args[0]
+        self.assertIn("Não use JSON", prompt)
+        self.assertIn("As fontes serão exibidas separadamente", prompt)
+
     def test_gemini_error_returns_controlled_response_with_sources(self) -> None:
         retriever = MagicMock()
         retriever.search.return_value = [make_result()]
@@ -85,6 +129,53 @@ class AgentServiceTests(unittest.TestCase):
         self.assertEqual(response["answer"], GEMINI_ERROR_MESSAGE)
         self.assertTrue(response["used_ai"])
         self.assertEqual(response["sources"][0]["file_name"], "sap_btp.pdf")
+        gemini.generate_text.assert_called_once()
+
+    def test_gemini_failures_are_user_friendly_and_preserve_sources(self) -> None:
+        cases = (
+            (GeminiQuotaError("quota"), GEMINI_QUOTA_MESSAGE),
+            (GeminiAuthenticationError("forbidden"), GEMINI_AUTHENTICATION_MESSAGE),
+            (GeminiTimeoutError("timeout"), GEMINI_TIMEOUT_MESSAGE),
+            (GeminiUnavailableError("unavailable"), GEMINI_UNAVAILABLE_MESSAGE),
+            (GeminiConnectionError("connection"), GEMINI_CONNECTION_MESSAGE),
+            (GeminiServiceError("generic"), GEMINI_ERROR_MESSAGE),
+        )
+
+        for error, expected_message in cases:
+            with self.subTest(error=type(error).__name__):
+                retriever = MagicMock()
+                retriever.search.return_value = [make_result()]
+                gemini = MagicMock()
+                gemini.generate_text.side_effect = error
+                service = AgentService(retriever=retriever, gemini_service=gemini)
+
+                response = service.ask("O que é SAP BTP?")
+
+                self.assertEqual(response["answer"], expected_message)
+                self.assertEqual(response["sources"][0]["file_name"], "sap_btp.pdf")
+                gemini.generate_text.assert_called_once()
+
+    def test_missing_api_key_is_controlled_without_gemini_call(self) -> None:
+        retriever = MagicMock()
+        retriever.search.return_value = [make_result()]
+        gemini_factory = MagicMock(side_effect=GeminiConfigurationError("missing key"))
+        service = AgentService(retriever=retriever, gemini_factory=gemini_factory)
+
+        response = service.ask("O que é SAP BTP?")
+
+        self.assertEqual(response["answer"], GEMINI_CONFIGURATION_MESSAGE)
+        self.assertEqual(response["sources"][0]["file_name"], "sap_btp.pdf")
+        gemini_factory.assert_called_once()
+
+    def test_gemini_service_errors_do_not_make_a_second_call(self) -> None:
+        retriever = MagicMock()
+        retriever.search.return_value = [make_result()]
+        gemini = MagicMock()
+        gemini.generate_text.side_effect = GeminiQuotaError("quota")
+        service = AgentService(retriever=retriever, gemini_service=gemini)
+
+        service.ask("O que é SAP BTP?")
+
         gemini.generate_text.assert_called_once()
 
     def test_invalid_or_empty_question_is_rejected(self) -> None:

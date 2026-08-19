@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -14,6 +15,7 @@ DEFAULT_MODEL = "gemini-3.5-flash-lite"
 DEFAULT_TIMEOUT_MS = 10_000
 MAX_PROMPT_LENGTH = 4_000
 DOTENV_PATH = Path(__file__).resolve().parents[2] / ".env"
+logger = logging.getLogger(__name__)
 
 
 class GeminiServiceError(RuntimeError):
@@ -32,8 +34,16 @@ class GeminiQuotaError(GeminiServiceError):
     """Raised when Gemini rejects a request because of quota or rate limits."""
 
 
+class GeminiAuthenticationError(GeminiServiceError):
+    """Raised when Gemini rejects the configured API key or permissions."""
+
+
 class GeminiUnavailableError(GeminiServiceError):
     """Raised when the Gemini service or network is unavailable."""
+
+
+class GeminiConnectionError(GeminiServiceError):
+    """Raised when a connection to Gemini cannot be established."""
 
 
 class GeminiHTTPError(GeminiServiceError):
@@ -101,12 +111,16 @@ class GeminiService:
         except GeminiServiceError:
             raise
         except errors.APIError as error:
+            logger.warning("Gemini API request failed; status=%s", _api_error_code(error))
             self._raise_api_error(error)
         except (httpx.TimeoutException, TimeoutError) as error:
+            logger.warning("Gemini request timed out; error_type=%s", type(error).__name__)
             raise GeminiTimeoutError("Gemini request timed out.") from error
         except (httpx.NetworkError, OSError) as error:
-            raise GeminiUnavailableError("Gemini service is unavailable.") from error
+            logger.warning("Gemini connection failed; error_type=%s", type(error).__name__)
+            raise GeminiConnectionError("Gemini connection failed.") from error
         except Exception as error:
+            logger.warning("Gemini request failed; error_type=%s", type(error).__name__)
             raise GeminiServiceError("Gemini request failed.") from error
         finally:
             if client is not None:
@@ -120,6 +134,8 @@ class GeminiService:
         status_code = _api_error_code(error)
         if status_code == 429:
             raise GeminiQuotaError("Gemini quota or rate limit was exceeded.") from error
+        if status_code in {401, 403}:
+            raise GeminiAuthenticationError("Gemini credentials were rejected.") from error
         if status_code in {408, 504}:
             raise GeminiTimeoutError("Gemini request timed out.") from error
         if status_code is not None and status_code >= 500:
