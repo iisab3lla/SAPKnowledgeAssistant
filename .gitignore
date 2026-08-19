@@ -1,0 +1,45 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+
+# JavaScript / frontend
+node_modules/
+dist/
+build/
+
+# Coverage and caches
+.coverage
+.coverage.*
+coverage/
+htmlcov/
+.cache/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Operating system files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE temporary files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
