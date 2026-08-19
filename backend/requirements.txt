@@ -1,3 +1,5 @@
 fastapi
 uvicorn[standard]
 pypdf
+google-genai==2.18.1
+python-dotenv==1.2.3
