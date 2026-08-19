@@ -1,0 +1,13 @@
+source_id,source_title,source_url,source_domain,source_type,official_sap_source,accessed_at,relevant_section,notes
+company_source_001,SAP Company Information,https://www.sap.com/about/company.html,sap.com,company_page,true,2026-08-19,Worldwide location directory,"Official company overview."
+company_source_002,SAP Worldwide Office Locations,https://www.sap.com/about/company/office-locations.html,sap.com,office_directory,true,2026-08-19,Worldwide Office Directory,"Dynamic directory; country counts vary across SAP pages."
+company_source_003,Life at SAP,https://jobs.sap.com/content/Life-at-Sap/?locale=en_US,jobs.sap.com,careers_page,true,2026-08-19,Inclusion and workforce,"Official SAP Careers page."
+company_source_004,SAP Hiring and Application Process,https://jobs.sap.com/content/Hiring-Process/?locale=en_US,jobs.sap.com,careers_page,true,2026-08-19,Inclusion well-being flexibility,"Official SAP Careers page."
+company_source_005,SAP Careers,https://jobs.sap.com/,jobs.sap.com,careers_page,true,2026-08-19,Growth Culture behaviors,"Official SAP Careers homepage."
+company_source_006,SAP Jobs FAQ,https://jobs.sap.com/content/FAQ/?locale=en_US,jobs.sap.com,careers_faq,true,2026-08-19,Trust empowerment flexibility,"Official SAP Careers FAQ."
+company_source_007,About SAP Labs Network,https://www.sap.com/about/company/innovation/labs.html,sap.com,labs_page,true,2026-08-19,Diversity innovation and locations,"Official SAP Labs page."
+company_source_008,SAP Executive Leadership,https://jobs.sap.com/content/Leadership/?locale=en_US,jobs.sap.com,leadership_page,true,2026-08-19,Integrity and culture,"Official SAP Careers leadership page."
+company_source_009,Germany Office Locations,https://www.sap.com/about/company/office-locations/germany.html,sap.com,office_directory,true,2026-08-19,German offices and SAP Labs,"Official country directory."
+company_source_010,United States Office Locations,https://www.sap.com/about/company/office-locations/usa.html,sap.com,office_directory,true,2026-08-19,US offices and SAP Labs,"Official country directory."
+company_source_011,India Office Locations,https://www.sap.com/about/company/office-locations/india.html,sap.com,office_directory,true,2026-08-19,India offices and SAP Labs,"Official country directory."
+company_source_012,France Office Locations,https://www.sap.com/about/company/office-locations/france.html,sap.com,office_directory,true,2026-08-19,France offices and SAP Labs,"Official country directory."
