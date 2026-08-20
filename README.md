@@ -219,12 +219,18 @@ O projeto pode ser publicado manualmente no plano gratuito do Render, sem criar 
 
 O frontend deve ser criado como um Static Site. Use `frontend/` como diretório do projeto, execute `npm install && npm run build` na etapa de build e publique a pasta `frontend/dist`.
 
-O backend deve ser criado como um Web Service. Use `backend/` como diretório do projeto, instale as dependências com `pip install -r requirements.txt` e inicie o servidor com Uvicorn usando a porta fornecida pelo Render:
+O backend deve ser criado como um Web Service com o diretório raiz do repositório. Essa configuração mantém a `knowledge_base/` disponível em tempo de execução. Use o comando de build `cd backend && pip install -r requirements.txt` e inicie o servidor com Uvicorn usando a porta fornecida pelo Render:
 
-```powershell
-uvicorn app.main:app --host 0.0.0.0 --port $env:PORT
+```text
+uvicorn app.main:app --app-dir backend --host 0.0.0.0 --port $PORT
 ```
 
-No painel do Render, configure as variáveis de ambiente do backend, incluindo `GEMINI_API_KEY` como variável privada e `GEMINI_MODEL=gemini-3.5-flash-lite`. Configure também a origem pública do frontend quando necessário para permitir as requisições entre os serviços. Nunca coloque a chave Gemini no frontend, no repositório ou em arquivos publicados.
+No painel do Render, configure as variáveis de ambiente do backend:
+
+- `GEMINI_API_KEY`: variável privada com a chave do Gemini;
+- `GEMINI_MODEL`: `gemini-3.5-flash-lite`;
+- `FRONTEND_ORIGIN`: URL pública do Static Site, sem incluir caminhos de API.
+
+No Static Site, configure `VITE_API_URL` com a URL pública do Web Service. Essa variável é usada apenas durante o build do frontend; nunca coloque a chave Gemini nela. O proxy do Vite continua disponível para o desenvolvimento local.
 
 O serviço gratuito do backend pode entrar em suspensão depois de um período de inatividade e voltar a responder quando receber uma nova requisição. Essa característica pode aumentar o tempo da primeira resposta após a suspensão.
