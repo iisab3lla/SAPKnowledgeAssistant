@@ -1,8 +1,10 @@
 from functools import lru_cache
+import os
 from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from app.services.agent_service import AgentInputError, AgentService
@@ -10,7 +12,23 @@ from app.services.gemini_service import GeminiServiceError
 from app.services.retriever import Retriever
 
 
+_local_frontend_origins = {
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+}
+_configured_frontend_origins = {
+    origin.strip().rstrip("/")
+    for origin in os.environ.get("FRONTEND_ORIGIN", "").split(",")
+    if origin.strip()
+}
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=sorted(_local_frontend_origins | _configured_frontend_origins),
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type"],
+)
 
 
 @app.get("/health")

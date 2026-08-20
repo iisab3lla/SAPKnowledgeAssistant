@@ -71,6 +71,18 @@ class AgentServiceTests(unittest.TestCase):
         retriever.search.assert_called_once_with("pergunta sem contexto", top_k=3)
         gemini.generate_text.assert_not_called()
 
+    def test_culture_question_without_culture_context_does_not_call_gemini(self) -> None:
+        retriever = MagicMock()
+        retriever.search.return_value = []
+        gemini = MagicMock()
+        service = AgentService(retriever=retriever, gemini_service=gemini)
+
+        response = service.ask("Quais são os valores da SAP?")
+
+        self.assertEqual(response["answer"], NO_CONTEXT_MESSAGE)
+        self.assertEqual(response["sources"], [])
+        gemini.generate_text.assert_not_called()
+
     def test_local_context_calls_gemini_once_with_only_retrieved_chunks(self) -> None:
         retriever = MagicMock()
         retriever.search.return_value = [make_result()]
@@ -116,6 +128,8 @@ class AgentServiceTests(unittest.TestCase):
         prompt = gemini.generate_text.call_args.args[0]
         self.assertIn("Não use JSON", prompt)
         self.assertIn("As fontes serão exibidas separadamente", prompt)
+        self.assertIn("aproveite o que estiver disponível", prompt)
+        self.assertIn("não transforme uma resposta parcial em recusa", prompt)
 
     def test_gemini_error_returns_controlled_response_with_sources(self) -> None:
         retriever = MagicMock()

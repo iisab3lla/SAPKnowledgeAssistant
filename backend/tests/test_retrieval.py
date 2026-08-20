@@ -3,6 +3,7 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
+import app.services.retriever as retriever_module
 from app.services.chunker import ChunkingConfig
 from app.services.retriever import (
     MAX_QUERY_LENGTH,
@@ -69,6 +70,102 @@ class RetrievalTests(unittest.TestCase):
 
     def test_query_without_context_returns_empty_list(self) -> None:
         self.assertEqual(self.retriever.search("quantum entanglement on mars"), [])
+
+    def test_brazil_location_question_returns_company_locations(self) -> None:
+        results = self.retriever.search("Aonde a SAP está localizada no Brasil?", top_k=5)
+
+        self.assertTrue(results)
+        self.assertTrue(any(result.source.file_name == "company_locations.csv" for result in results))
+        self.assertTrue(any(result.source.record_number == 8 for result in results))
+
+    def test_office_variations_return_company_locations(self) -> None:
+        queries = (
+            "Onde ficam os escritórios da SAP no Brasil?",
+            "Em quais cidades brasileiras a SAP possui presença?",
+            "Onde a SAP está presente no mundo?",
+        )
+
+        for query in queries:
+            with self.subTest(query=query):
+                results = self.retriever.search(query, top_k=5)
+                self.assertTrue(results)
+                self.assertTrue(
+                    any(result.source.file_name == "company_locations.csv" for result in results)
+                )
+
+    def test_location_term_normalization_preserves_semantic_terms(self) -> None:
+        self.assertIn("localizacao", retriever_module._tokens("localizada localizações"))
+        self.assertIn("escritorio", retriever_module._tokens("escritórios office"))
+        self.assertIn("brasil", retriever_module._tokens("brasileiras"))
+        self.assertIn("pais", retriever_module._tokens("países country"))
+        self.assertIn("cidade", retriever_module._tokens("cidades city"))
+
+    def test_company_culture_questions_use_only_culture_sources(self) -> None:
+        queries = (
+            "Quais são os valores da SAP?",
+            "Como é a cultura da SAP?",
+            "A SAP valoriza diversidade?",
+            "Quais são os princípios da SAP?",
+        )
+
+        for query in queries:
+            with self.subTest(query=query):
+                results = self.retriever.search(query, top_k=5)
+                self.assertTrue(results)
+                self.assertTrue(
+                    all(result.source.file_name == "company_culture.csv" for result in results)
+                )
+                self.assertFalse(
+                    any("preço" in result.content.casefold() for result in results)
+                )
+
+    def test_product_price_question_does_not_use_culture_sources(self) -> None:
+        results = self.retriever.search("Qual é o preço do SAP S/4HANA?", top_k=5)
+
+        self.assertTrue(results)
+        self.assertTrue(any(result.source.file_name == "product_faq.csv" for result in results))
+        self.assertTrue(all(result.source.file_name != "company_culture.csv" for result in results))
+
+    def test_sap_alone_is_not_relevant_context(self) -> None:
+        self.assertEqual(self.retriever.search("SAP"), [])
+
+    def test_concur_overview_questions_prioritize_direct_product_sources(self) -> None:
+        queries = (
+            "Como funciona o SAP Concur?",
+            "O que é o SAP Concur?",
+            "Quais recursos o SAP Concur oferece?",
+        )
+        unrelated_product_markers = ("sap_btp.pdf", "sap_s4hana.pdf", "sap_successfactors.pdf")
+
+        for query in queries:
+            with self.subTest(query=query):
+                results = self.retriever.search(query, top_k=5)
+                self.assertTrue(results)
+                self.assertTrue(
+                    any(result.source.file_name == "product_faq.csv" for result in results)
+                )
+                self.assertFalse(
+                    any(
+                        result.source.file_name in unrelated_product_markers
+                        for result in results
+                    )
+                )
+
+    def test_concur_integration_question_uses_integration_sources(self) -> None:
+        results = self.retriever.search(
+            "Com quais produtos o SAP Concur se integra?", top_k=8
+        )
+
+        source_names = {result.source.file_name for result in results}
+        self.assertTrue(results)
+        self.assertTrue(
+            {"product_integrations.csv", "product_related_products.csv"}.intersection(
+                source_names
+            )
+        )
+        self.assertNotIn("sap_btp.pdf", source_names)
+        self.assertNotIn("sap_s4hana.pdf", source_names)
+        self.assertNotIn("sap_successfactors.pdf", source_names)
 
     def test_excessively_large_query_is_rejected(self) -> None:
         with self.assertRaises(ValueError):

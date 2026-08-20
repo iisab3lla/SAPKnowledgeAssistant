@@ -21,6 +21,28 @@ MAX_QUERY_LENGTH = 500
 MAX_TOP_K = 10
 DEFAULT_TOP_K = 5
 DEFAULT_MIN_RELEVANCE = 0.5
+LOCATION_SOURCE_NAME = "company_locations.csv"
+CULTURE_SOURCE_NAME = "company_culture.csv"
+CONCUR_PDF_SOURCE_NAME = "sap_concur.pdf"
+CONCUR_INTEGRATION_SOURCE_NAMES = frozenset(
+    {"product_integrations.csv", "product_related_products.csv"}
+)
+CONCUR_PRIMARY_SOURCE_NAMES = frozenset(
+    {
+        "product_faq.csv",
+        "product_features.csv",
+        "product_ai_capabilities.csv",
+        "product_components.csv",
+        "product_deployment.csv",
+        "product_licensing.csv",
+        "product_use_cases.csv",
+        "product_benefits.csv",
+        "product_security.csv",
+        "product_technologies.csv",
+        CONCUR_PDF_SOURCE_NAME,
+    }
+)
+_SECONDARY_PRODUCT_MARKERS = ("sap btp", "sap s/4hana", "sap successfactors")
 
 _TOKEN_PATTERN = re.compile(r"[^\W_]+", flags=re.UNICODE)
 _STOPWORDS = frozenset(
@@ -32,6 +54,7 @@ _STOPWORDS = frozenset(
         "are",
         "ao",
         "aos",
+        "aonde",
         "com",
         "como",
         "da",
@@ -47,6 +70,7 @@ _STOPWORDS = frozenset(
         "este",
         "for",
         "how",
+        "qual",
         "in",
         "is",
         "na",
@@ -56,6 +80,7 @@ _STOPWORDS = frozenset(
         "o",
         "of",
         "on",
+        "onde",
         "os",
         "para",
         "por",
@@ -70,7 +95,75 @@ _STOPWORDS = frozenset(
         "what",
         "where",
         "which",
+        "quais",
+        "fica",
+        "ficam",
+        "possui",
+        "esta",
+        "sao",
+        "sap",
     }
+)
+
+_TOKEN_ALIASES = {
+    "localizado": "localizacao",
+    "localizada": "localizacao",
+    "localizados": "localizacao",
+    "localizadas": "localizacao",
+    "localizacao": "localizacao",
+    "localizacoes": "localizacao",
+    "location": "localizacao",
+    "locations": "localizacao",
+    "escritorio": "escritorio",
+    "escritorios": "escritorio",
+    "office": "escritorio",
+    "offices": "escritorio",
+    "pais": "pais",
+    "paises": "pais",
+    "country": "pais",
+    "countries": "pais",
+    "brasil": "brasil",
+    "brasileiro": "brasil",
+    "brasileira": "brasil",
+    "brasileiros": "brasil",
+    "brasileiras": "brasil",
+    "cidade": "cidade",
+    "cidades": "cidade",
+    "city": "cidade",
+    "cities": "cidade",
+    "presente": "presenca",
+    "presenca": "presenca",
+    "presence": "presenca",
+    "global": "mundo",
+    "mundo": "mundo",
+    "culture": "cultura",
+    "cultural": "cultura",
+    "cultura": "cultura",
+    "valor": "valor",
+    "valores": "valor",
+    "values": "valor",
+    "value": "valor",
+    "valoriza": "valor",
+    "principio": "principio",
+    "principios": "principio",
+    "principle": "principio",
+    "principles": "principio",
+    "diversidade": "diversidade",
+    "diversity": "diversidade",
+    "diverse": "diversidade",
+    "inovacao": "inovacao",
+    "innovation": "inovacao",
+    "inovacoes": "inovacao",
+    "missao": "missao",
+    "mission": "missao",
+    "visao": "visao",
+    "vision": "visao",
+}
+_LOCATION_QUERY_TERMS = frozenset(
+    {"localizacao", "escritorio", "pais", "brasil", "cidade", "presenca", "mundo"}
+)
+_CULTURE_QUERY_TERMS = frozenset(
+    {"cultura", "valor", "principio", "diversidade", "inovacao", "missao", "visao"}
 )
 
 
@@ -129,10 +222,72 @@ def normalize_query(query: str, max_length: int = MAX_QUERY_LENGTH) -> str:
 def _tokens(value: str) -> list[str]:
     normalized = _normalize_for_matching(value)
     return [
-        token
+        _TOKEN_ALIASES.get(token, token)
         for token in _TOKEN_PATTERN.findall(normalized)
         if len(token) > 1 and token not in _STOPWORDS
     ]
+
+
+def _is_location_query(query_terms: Sequence[str]) -> bool:
+    return bool(_LOCATION_QUERY_TERMS.intersection(query_terms))
+
+
+def _is_location_source(chunk: DocumentChunk) -> bool:
+    return Path(chunk.source_file).name.casefold() == LOCATION_SOURCE_NAME
+
+
+def _is_culture_query(query_terms: Sequence[str]) -> bool:
+    if _CULTURE_QUERY_TERMS.intersection(query_terms):
+        return True
+    return {"ambiente", "trabalho"}.issubset(query_terms) or {
+        "bem",
+        "estar",
+    }.issubset(query_terms)
+
+
+def _is_culture_source(chunk: DocumentChunk) -> bool:
+    return Path(chunk.source_file).name.casefold() == CULTURE_SOURCE_NAME
+
+
+def _chunk_source_name(chunk: DocumentChunk) -> str:
+    return Path(chunk.source_file).name.casefold()
+
+
+def _chunk_mentions_concur(chunk: DocumentChunk) -> bool:
+    if _chunk_source_name(chunk) == CONCUR_PDF_SOURCE_NAME:
+        return True
+    normalized = _normalize_for_matching(chunk.content)
+    return "sap_concur" in normalized or "sap concur" in normalized
+
+
+def _contains_secondary_product(chunk: DocumentChunk) -> bool:
+    normalized = _normalize_for_matching(chunk.content)
+    return any(marker in normalized for marker in _SECONDARY_PRODUCT_MARKERS)
+
+
+def _is_concur_query(query_terms: Sequence[str]) -> bool:
+    return "concur" in query_terms
+
+
+def _is_concur_integration_query(query_terms: Sequence[str]) -> bool:
+    return bool(
+        {"integra", "integracao", "conecta", "conectores"}.intersection(query_terms)
+    )
+
+
+def _concur_source_priority(chunk: DocumentChunk, integration_query: bool) -> int:
+    source_name = _chunk_source_name(chunk)
+    if integration_query:
+        if source_name in CONCUR_INTEGRATION_SOURCE_NAMES:
+            return 4
+        if source_name == "product_faq.csv":
+            return 3
+        if source_name == CONCUR_PDF_SOURCE_NAME:
+            return 2
+        return 1
+    if source_name == "product_faq.csv" or source_name == CONCUR_PDF_SOURCE_NAME:
+        return 4
+    return 2
 
 
 def lexical_relevance(query_terms: Sequence[str], content: str) -> float:
@@ -148,6 +303,11 @@ def lexical_relevance(query_terms: Sequence[str], content: str) -> float:
     capped_frequency = sum(min(content_counts[term], 3) / 3 for term in unique_terms)
     frequency = capped_frequency / len(unique_terms)
     return (coverage * 0.75) + (frequency * 0.25)
+
+
+def _matched_term_count(query_terms: Sequence[str], content: str) -> int:
+    query_set = set(query_terms)
+    return len(query_set.intersection(_tokens(content)))
 
 
 def load_knowledge_base_chunks(
@@ -198,21 +358,55 @@ class Retriever:
             raise ValueError("top_k must be greater than zero")
         safe_top_k = min(requested_top_k, self.config.max_top_k)
 
-        ranked: list[tuple[float, DocumentChunk]] = []
+        ranked: list[tuple[float, int, DocumentChunk]] = []
+        location_query = _is_location_query(query_terms)
+        culture_query = _is_culture_query(query_terms)
+        concur_query = _is_concur_query(query_terms)
+        concur_integration_query = _is_concur_integration_query(query_terms)
         for chunk in self._chunks:
             if not chunk.content.strip():
                 continue
+            if culture_query and not _is_culture_source(chunk):
+                continue
+            if concur_query:
+                source_name = _chunk_source_name(chunk)
+                if not _chunk_mentions_concur(chunk):
+                    continue
+                if concur_integration_query:
+                    if source_name not in {
+                        *CONCUR_PRIMARY_SOURCE_NAMES,
+                        *CONCUR_INTEGRATION_SOURCE_NAMES,
+                    }:
+                        continue
+                elif source_name in CONCUR_INTEGRATION_SOURCE_NAMES:
+                    continue
+                elif _contains_secondary_product(chunk):
+                    continue
             relevance = lexical_relevance(query_terms, chunk.content)
+            if location_query and _is_location_source(chunk):
+                relevance = min(1.0, relevance + 0.2)
+            if culture_query:
+                matched_terms = _matched_term_count(query_terms, chunk.content)
+                relevance = max(
+                    relevance,
+                    min(1.0, self.config.min_relevance + (0.2 * matched_terms)),
+                )
             if relevance >= self.config.min_relevance:
-                ranked.append((relevance, chunk))
+                priority = (
+                    _concur_source_priority(chunk, concur_integration_query)
+                    if concur_query
+                    else 0
+                )
+                ranked.append((relevance, priority, chunk))
 
         ranked.sort(
             key=lambda item: (
                 -item[0],
-                item[1].source_file,
-                item[1].page or 0,
-                item[1].record_number or 0,
-                item[1].id,
+                -item[1],
+                item[2].source_file,
+                item[2].page or 0,
+                item[2].record_number or 0,
+                item[2].id,
             )
         )
         return [
@@ -221,5 +415,5 @@ class Retriever:
                 relevance=relevance,
                 source=format_source(chunk),
             )
-            for relevance, chunk in ranked[:safe_top_k]
+            for relevance, _, chunk in ranked[:safe_top_k]
         ]
