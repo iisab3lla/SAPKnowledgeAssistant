@@ -8,6 +8,7 @@ type CategoryId = "products" | "technology" | "locations" | "company";
 type Category = { id: CategoryId; title: string; description: string; tone: string; icon: ReactNode; suggestions: string[] };
 
 const STORAGE_KEY = "sap-knowledge-assistant-conversations";
+const API_BASE_URL = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
 
 function AnswerContent({ content }: { content: string }) {
   const blocks = content.split(/\n\s*\n/).map((block) => block.trim()).filter(Boolean);
@@ -89,7 +90,7 @@ function App() {
     });
     setActiveConversationId(conversationId); setQuestion(""); setError(null); setIsLoading(true);
     try {
-      const response = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: trimmedQuestion }) });
+      const response = await fetch(`${API_BASE_URL}/api/chat`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: trimmedQuestion }) });
       if (!response.ok) throw new Error(response.status === 402 || response.status === 403 ? "A IA está indisponível ou sem créditos no momento. Tente novamente mais tarde." : "Não foi possível consultar o assistente agora.");
       const data = (await response.json()) as ChatResponse;
       const assistantMessage: Message = { id: `assistant-${Date.now()}`, role: "assistant", content: data.answer, sources: data.sources, usedAi: data.used_ai };
@@ -101,7 +102,7 @@ function App() {
 
   return <div className="app-shell">
     <aside className="sidebar">
-      <div className="brand" aria-label="SAP Knowledge Assistant"><span className="brand-mark" aria-hidden="true" /><span>SAP Knowledge Assistant</span></div>
+      <div className="brand" aria-label="SAP Knowledge Assistant"><img className="brand-mark" src="/sap-knowledge-assistant-logo.svg" alt="" /><span>SAP Knowledge Assistant</span></div>
       <button className="new-conversation" type="button" onClick={startNewConversation} disabled={isLoading}><PlusIcon /><span>Nova conversa</span></button>
       <div className="sidebar-section"><h2>Conversas recentes</h2><nav aria-label="Conversas recentes">
         {conversations.map((conversation) => <div className={`recent-conversation ${conversation.id === activeConversationId ? "is-active" : ""}`} key={conversation.id}>
@@ -113,12 +114,12 @@ function App() {
     <main className="main-content"><div className={`workspace ${hasConversation ? "workspace-conversation" : ""}`}>
       {!hasConversation ? <section className="welcome-section" aria-labelledby="welcome-title"><p className="eyebrow">CONHECIMENTO SAP</p><h1 id="welcome-title">Como posso ajudar hoje?</h1><p className="welcome-copy">Faça perguntas sobre produtos, tecnologias, sistemas e informações da SAP.</p><div className="category-grid">{categories.map((category) => <CategoryCard key={category.id} category={category} selected={category.id === selectedCategoryId} onSelect={selectCategory} />)}</div></section> :
         <section className="conversation" aria-live="polite"><div className="conversation-heading"><div><p className="eyebrow">CONVERSA ATUAL</p><h1>Conhecimento SAP</h1></div><button className="delete-current-conversation" type="button" onClick={() => requestConversationDeletion(activeConversation)} disabled={isLoading}><TrashIcon /> Apagar conversa</button></div>
-          {activeConversation.messages.map((message) => <article className={`message message-${message.role}`} key={message.id}><div className="message-label">{message.role === "user" ? "Você" : "Assistente SAP"}</div>{message.role === "assistant" ? <AnswerContent content={message.content} /> : <p>{message.content}</p>}{message.role === "assistant" && message.sources && message.sources.length > 0 && <div className="source-list"><span className="source-heading">Fontes</span>{message.sources.map((source) => <div className="source-item" key={source.chunk_id}><span className="source-file">{source.file_name}</span><span>{source.document_type.toUpperCase()}</span>{source.page !== null && <span>p. {source.page}</span>}{source.record_number !== null && <span>registro {source.record_number}</span>}{source.line_number !== null && <span>linha {source.line_number}</span>}</div>)}</div>}</article>)}
+          {activeConversation.messages.map((message) => <article className={`message message-${message.role}`} key={message.id}><div className="message-label">{message.role === "user" ? "Você" : "Assistente SAP"}</div>{message.role === "assistant" ? <AnswerContent content={message.content} /> : <p>{message.content}</p>}{message.role === "assistant" && message.sources && message.sources.length > 0 && <p className="knowledge-base-note">Informações baseadas na Knowledge Base SAP, compilada a partir de fontes oficiais da SAP.</p>}</article>)}
           {isLoading && <div className="loading-state"><span className="loading-dot" /> Preparando sua resposta...</div>}
         </section>}
       <section className="composer-section" aria-label="Enviar pergunta">{error && <div className="error-banner" role="alert">{error}</div>}<form className="composer" onSubmit={submitQuestion}><textarea ref={inputRef} value={question} onChange={(event) => setQuestion(event.target.value)} onKeyDown={handleInputKeyDown} placeholder="Digite sua pergunta sobre a SAP..." aria-label="Digite sua pergunta sobre a SAP" rows={1} disabled={isLoading} /><button type="submit" className="send-button" disabled={!question.trim() || isLoading}><SendIcon /><span>{isLoading ? "Consultando" : "Enviar"}</span></button></form>
         {!hasConversation && <div className="suggestion-area"><p className="suggestion-label">Sugestões: {selectedCategory.title}</p><div className="suggestion-row" aria-label={`Perguntas sugeridas sobre ${selectedCategory.title}`}>{selectedCategory.suggestions.map((suggestion) => <button type="button" className="suggestion-button" key={suggestion} onClick={() => selectSuggestion(suggestion)}>{suggestion}</button>)}</div></div>}
-        <p className="disclaimer">As fontes relacionadas à resposta são exibidas logo acima.</p></section>
+        </section>
     </div></main>
     {conversationToDelete && <div className="modal-backdrop" role="presentation" onClick={() => setConversationToDelete(null)}><div className="confirmation-modal" role="dialog" aria-modal="true" aria-labelledby="clear-title" onClick={(event) => event.stopPropagation()}><div className="modal-icon"><TrashIcon /></div><h2 id="clear-title">Apagar esta conversa?</h2><p>As mensagens desta conversa serão removidas deste navegador.</p><div className="modal-actions"><button type="button" className="secondary-button" onClick={() => setConversationToDelete(null)}>Cancelar</button><button type="button" className="danger-button" onClick={deleteConversation}>Apagar conversa</button></div></div></div>}
   </div>;
