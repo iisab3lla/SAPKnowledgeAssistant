@@ -1,14 +1,148 @@
+<div align="center">
+
 # SAP Knowledge Assistant
 
-Assistente de conhecimento SAP com recuperação local de documentos e geração opcional de respostas pelo Google Gemini. O projeto prioriza fontes rastreáveis, baixo custo e processamento local antes de qualquer chamada externa.
+Assistente para consultar informações sobre produtos, tecnologias, sistemas e a empresa SAP.
 
-## Objetivo
+Este projeto combina uma Knowledge Base local com recuperação de informações e uso opcional do Google Gemini para responder perguntas sobre a SAP.
 
-Responder perguntas sobre a Knowledge Base SAP usando PDFs e CSVs locais, exibindo as fontes utilizadas. O Gemini é um serviço isolado de geração: ele só recebe os chunks mais relevantes quando a busca local encontra contexto suficiente.
+[**Acessar demonstração online**](https://sapknowledgeassistant.onrender.com)
 
-O assistente responde perguntas sobre produtos, tecnologias, sistemas, localizações e informações institucionais da SAP. A busca prioriza a Knowledge Base local antes de recorrer ao Gemini.
+![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
+![React](https://img.shields.io/badge/React-20232A?logo=react&logoColor=61DAFB)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white)
+![Google Gemini](https://img.shields.io/badge/Google_Gemini-4285F4?logo=googlegemini&logoColor=white)
+![Render](https://img.shields.io/badge/Render-46E3B7?logo=render&logoColor=black)
+
+</div>
+
+## Visão geral do projeto
+
+| Item | Descrição |
+| --- | --- |
+| Tipo de projeto | Assistente de conhecimento com RAG local |
+| Objetivo | Responder perguntas sobre a SAP |
+| Interface | Aplicação web em React |
+| Backend | API em FastAPI |
+| Base de conhecimento | PDFs e CSVs sobre a SAP |
+| IA generativa | Google Gemini, usada quando necessário |
+| Hospedagem | Render |
+
+O SAP Knowledge Assistant responde perguntas usando documentos locais sobre a SAP. Antes de gerar uma resposta, ele procura trechos relacionados na Knowledge Base e mostra as fontes utilizadas. O Gemini pode ajudar a sintetizar esses trechos, mas só recebe contexto quando a busca local encontra material relevante.
+
+## Navegação
+
+| Seção | Conteúdo |
+| --- | --- |
+| [Visão geral](#visão-geral-do-projeto) | O que é o projeto |
+| [Arquitetura](#arquitetura) | Como as partes se conectam |
+| [Tecnologias](#tecnologias) | Ferramentas utilizadas |
+| [Knowledge Base](#knowledge-base) | Documentos e dados utilizados |
+| [Execução local](#execução-local) | Como rodar no computador |
+| [Demonstração](#demonstração) | Imagens e acesso online |
+| [Exemplos](#exemplos-de-uso) | Perguntas e respostas |
+| [Testes](#testes) | Como validar o projeto |
+| [Segurança](#segurança) | Tratamento de secrets |
+| [Deploy](#deploy) | Hospedagem no Render |
+
+## Arquitetura
+
+O fluxo de uma pergunta é simples:
+
+1. O usuário faz uma pergunta no frontend.
+2. O frontend envia a pergunta para o backend.
+3. O backend procura primeiro na Knowledge Base local.
+4. PDFs e CSVs são carregados, limpos e divididos em chunks.
+5. O retriever busca os trechos mais relacionados à pergunta.
+6. O Gemini só é usado quando há contexto relevante e é necessária uma síntese.
+7. A resposta, junto das fontes disponíveis, volta para o frontend.
+
+```mermaid
+flowchart LR
+    A[Usuário] --> B[Frontend React]
+    B --> C[API FastAPI]
+    C --> D[Busca local]
+    D --> E{Contexto relevante?}
+    E -->|Sim| F[Gemini opcional]
+    E -->|Não| G[Resposta controlada]
+    F --> H[Resposta]
+    G --> H
+```
+
+O frontend não acessa a API Key e não chama o Gemini diretamente. A Knowledge Base é carregada pelo backend, e documentos completos não são enviados ao modelo.
+
+## Tecnologias
+
+- Python, FastAPI e Uvicorn no backend.
+- React, TypeScript e Vite na interface.
+- `pypdf` para leitura dos PDFs e o módulo `csv` da biblioteca padrão para os CSVs.
+- Google Gen AI SDK para a chamada opcional ao Gemini.
+- `python-dotenv` para carregar variáveis de ambiente locais.
+
+## Knowledge Base
+
+A Knowledge Base fica no diretório `knowledge_base/` e reúne PDFs e CSVs sobre a SAP. O backend transforma o conteúdo em chunks para a busca local e preserva metadados como arquivo, tipo de documento, página do PDF, registro ou linha do CSV e identificador do chunk.
+
+A busca é lexical e local. O projeto não usa embeddings, vector store ou Gemini para processar documentos, buscar trechos ou classificá-los.
+
+## Execução local
+
+### Pré-requisitos
+
+- Python com o launcher `py` disponível no Windows.
+- Node.js e npm.
+- Git.
+
+### Backend
+
+Na raiz do projeto, crie e ative o ambiente virtual:
+
+```powershell
+py -m venv backend\.venv
+.\backend\.venv\Scripts\Activate.ps1
+python -m pip install -r backend\requirements.txt
+```
+
+Crie `backend/.env` localmente, sem publicar o arquivo:
+
+```dotenv
+GEMINI_API_KEY=
+GEMINI_MODEL=gemini-3.5-flash-lite
+```
+
+Em seguida, inicie a API:
+
+```powershell
+cd backend
+uvicorn app.main:app --reload
+```
+
+O backend fica disponível em `http://127.0.0.1:8000`. A verificação de saúde pode ser feita em `http://localhost:8000/health`.
+
+### Frontend
+
+Em outro terminal, instale as dependências e inicie o Vite:
+
+```powershell
+cd frontend
+npm.cmd install
+npm.cmd run dev
+```
+
+Abra no navegador o endereço informado pelo Vite. Durante o desenvolvimento, o proxy encaminha `/api` para `http://127.0.0.1:8000`.
+
+### Problemas comuns
+
+- Se o backend não responder, confirme que ele foi iniciado antes de enviar perguntas.
+- Se a porta 8000 estiver ocupada, encerre o processo que a utiliza ou escolha outra porta para o backend.
+- Se a porta do Vite estiver ocupada, use o endereço alternativo mostrado no terminal.
+- Se `backend/.venv` não existir, crie-o com `py -m venv backend\.venv`.
 
 ## Demonstração
+
+A aplicação publicada está disponível em [sapknowledgeassistant.onrender.com](https://sapknowledgeassistant.onrender.com).
 
 ### Tela inicial
 
@@ -26,205 +160,17 @@ O assistente responde perguntas sobre produtos, tecnologias, sistemas, localiza�
 
 ![Tratamento de pergunta fora do escopo](docs/screenshots/out-of-scope.png)
 
-As imagens mostram a interface em uma sequência visual curta: tela inicial, resposta contextualizada sobre produtos, resposta institucional e tratamento controlado de uma pergunta sem contexto suficiente.
+## Exemplos de uso
 
-## Arquitetura
+Algumas perguntas que podem ser feitas ao assistente:
 
-```text
-Frontend React/Vite
-        │ POST /api/chat
-        ▼
-Backend FastAPI
-        │
-        ├─ carregadores PDF/CSV + limpeza + chunking determinístico
-        ├─ retriever lexical local
-        ├─ orquestrador local-first
-        └─ Gemini opcional, uma chamada no máximo
-                │
-                └─ resposta + fontes rastreáveis
-```
+- O que é SAP BTP?
+- Como funciona o SAP Concur?
+- Quais são os principais produtos da SAP?
+- Como é a cultura da SAP?
+- Onde a SAP está localizada no Brasil?
 
-O frontend não acessa a API Key e não chama o Gemini diretamente. A Knowledge Base permanece no projeto e é carregada pelo backend.
-
-## Tecnologias
-
-- Python, FastAPI e Uvicorn
-- `pypdf` para leitura de PDFs
-- módulo `csv` da biblioteca padrão para CSVs
-- Google Gen AI SDK para a chamada opcional ao Gemini
-- React, TypeScript e Vite
-
-As principais tecnologias e ferramentas são Python, FastAPI, Uvicorn, React, TypeScript, Vite, Google Gemini, `google-genai`, `pypdf`, `python-dotenv`, Git e GitHub.
-
-## Estrutura de pastas
-
-```text
-.
-├── backend/
-│   ├── app/
-│   │   ├── models/
-│   │   └── services/
-│   ├── tests/
-│   └── requirements.txt
-├── frontend/
-│   ├── src/
-│   ├── package.json
-│   └── vite.config.ts
-├── knowledge_base/
-│   ├── pdf/
-│   ├── csv/
-│   └── validation/
-├── docs/
-├── scripts/
-├── .env.example
-├── AGENTS.md
-└── README.md
-```
-
-Os diretórios `backend/.venv`, `frontend/node_modules` e `frontend/dist` são locais e ignorados pelo Git.
-
-## Configuração do ambiente
-
-Pré-requisitos:
-
-- Python instalado com o launcher `py` disponível no Windows;
-- Node.js e npm;
-- Git.
-
-### Ambiente virtual e backend
-
-Na raiz do projeto, crie o ambiente virtual:
-
-```powershell
-py -m venv backend\.venv
-```
-
-Ative-o no PowerShell:
-
-```powershell
-.\backend\.venv\Scripts\Activate.ps1
-```
-
-Instale somente as dependências declaradas pelo backend:
-
-```powershell
-python -m pip install -r backend\requirements.txt
-```
-
-Em uma nova sessão, a ativação pode ser feita diretamente dentro de `backend`:
-
-```powershell
-cd backend
-.\.venv\Scripts\Activate.ps1
-```
-
-### Frontend
-
-Em outro terminal, instale as dependências dentro de `frontend/`:
-
-```powershell
-cd frontend
-npm.cmd install
-```
-
-O frontend não precisa de API Key.
-
-### Variáveis de ambiente
-
-Crie `backend/.env` localmente, sem publicar o arquivo:
-
-```dotenv
-GEMINI_API_KEY=
-GEMINI_MODEL=gemini-3.5-flash-lite
-```
-
-O backend carrega essas variáveis do ambiente e, quando disponível, de `backend/.env`. A chave deve existir somente no backend. Nunca copie valores reais para o README, para o frontend, para logs ou para o Git. O arquivo `.env.example` contém apenas os nomes das variáveis.
-
-## Execução
-
-### Backend
-
-Com o ambiente virtual ativo e a partir da raiz:
-
-```powershell
-cd backend
-uvicorn app.main:app --reload
-```
-
-O servidor fica disponível em `http://127.0.0.1:8000`.
-
-### Frontend
-
-Em outro terminal:
-
-```powershell
-cd frontend
-npm.cmd run dev
-```
-
-Abra o endereço informado pelo Vite. O proxy de desenvolvimento encaminha `/api` para `http://127.0.0.1:8000`.
-
-## Como executar localmente
-
-### 1. Pré-requisitos
-
-- Node.js instalado.
-- npm disponível.
-- Python instalado.
-- Git instalado.
-
-### 2. Backend
-
-Abra um terminal no VS Code e execute:
-
-```powershell
-cd C:\Users\user\Desktop\SAPKnowledgeAssistant\backend
-.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000
-```
-
-O backend ficará disponível em:
-
-`http://localhost:8000`
-
-A verificação de saúde pode ser feita em:
-
-`http://localhost:8000/health`
-
-Resultado esperado:
-
-```json
-{"status":"ok"}
-```
-
-### 3. Frontend
-
-Abra um segundo terminal e execute:
-
-```powershell
-cd C:\Users\user\Desktop\SAPKnowledgeAssistant\frontend
-npm.cmd run dev -- --port 5174
-```
-
-A interface ficará disponível em:
-
-`http://localhost:5174`
-
-### 4. Observações importantes
-
-- Os dois terminais precisam permanecer abertos.
-- O backend deve ser iniciado antes de enviar perguntas.
-- O frontend usa o backend pela API `POST /api/chat`.
-- O arquivo `.env` deve permanecer apenas no backend.
-- A `GEMINI_API_KEY` nunca deve ser colocada no frontend.
-- Se a porta 5174 estiver ocupada, o Vite poderá iniciar em outra porta; nesse caso, use a URL exibida no terminal.
-
-### Problemas comuns
-
-- Backend não iniciado: inicie o comando do backend e aguarde o servidor ficar disponível.
-- Porta 8000 ocupada: encerre o processo que usa a porta ou escolha outra porta para o backend.
-- Porta 5174 ocupada: use a porta alternativa informada pelo Vite.
-- `.venv` inexistente: crie o ambiente virtual com `py -m venv backend\\.venv`.
-- Dependências não instaladas: instale as dependências do backend e do frontend conforme as instruções de configuração do ambiente.
+Quando a Knowledge Base tem contexto suficiente, a resposta apresenta as fontes relacionadas. Quando não há material relevante, o assistente informa essa limitação em vez de responder fora do conteúdo disponível.
 
 ## API
 
@@ -244,7 +190,7 @@ Recebe uma pergunta no campo `message`:
 {"message":"O que é SAP BTP?"}
 ```
 
-Retorna uma resposta, as fontes rastreáveis e a indicação de uso de IA:
+A resposta inclui o texto, as fontes disponíveis e a indicação de uso de IA:
 
 ```json
 {
@@ -254,52 +200,11 @@ Retorna uma resposta, as fontes rastreáveis e a indicação de uso de IA:
 }
 ```
 
-Cada fonte pode informar nome do arquivo, tipo do documento, página do PDF, registro ou linha do CSV e identificador do chunk. O endpoint rejeita perguntas vazias. Falhas controladas do Gemini retornam uma resposta de erro sem expor credenciais.
+O endpoint rejeita perguntas vazias. Se o Gemini falhar, o backend retorna uma resposta controlada sem expor credenciais.
 
-## Exemplos de perguntas
+## Testes
 
-- O que é SAP BTP?
-- Como funciona o SAP Concur?
-- Quais são os principais produtos da SAP?
-- Como é a cultura da SAP?
-- Quais são os valores da SAP?
-- Onde a SAP está localizada no Brasil?
-- Quais tecnologias e sistemas a SAP utiliza?
-
-## Exemplos de respostas geradas
-
-Os exemplos abaixo são ilustrativos e baseados no comportamento validado do agente.
-
-Sobre cultura:
-
-A cultura da SAP valoriza colaboração, confiança, autonomia e inovação. A empresa também destaca diversidade, aprendizado contínuo e trabalho em equipe.
-
-Sobre produto:
-
-O SAP S/4HANA é um sistema ERP de nova geração utilizado para integrar e gerenciar processos empresariais centrais.
-
-Fora do escopo:
-
-Não encontrei informações suficientes na Knowledge Base SAP para responder a essa pergunta.
-
-## RAG local-first e economia do Gemini
-
-O fluxo é determinístico e segue esta ordem:
-
-1. A pergunta é validada, normalizada e limitada em tamanho.
-2. O retriever local busca lexicalmente nos chunks dos PDFs e CSVs.
-3. Se não houver contexto suficiente, o backend não chama o Gemini e informa que a Knowledge Base não possui informação suficiente.
-4. Se houver contexto relevante, somente os chunks mais bem classificados são enviados ao serviço de geração.
-5. É feita no máximo uma chamada ao Gemini por pergunta, sem retries automáticos.
-6. As fontes derivadas dos chunks são preservadas na resposta.
-
-O projeto não usa Gemini para embeddings, busca, classificação ou processamento documental. Não há embeddings nem vector store, e documentos completos nunca são enviados ao Gemini.
-
-Os testes usam mocks e não realizam chamadas reais ao Gemini. Perguntas sem contexto relevante recebem uma resposta controlada, sem enviar documentos completos ou conteúdo irrelevante ao modelo.
-
-## Testes e build
-
-Com o ambiente virtual do backend ativo:
+Com o ambiente virtual do backend ativo, execute os testes automatizados:
 
 ```powershell
 cd backend
@@ -313,42 +218,33 @@ cd frontend
 npm.cmd run build
 ```
 
-Para uma verificação de formatação do Git, na raiz:
+Para verificar problemas de espaços em branco no Git, na raiz do projeto:
 
 ```powershell
 git diff --check
 ```
 
-Os testes automatizados usam mocks quando validam o serviço Gemini. Não execute chamadas reais ao Gemini como parte da suíte. O frontend também não deve acessar `GEMINI_API_KEY`.
+Os testes usam mocks para validar a integração com Gemini e não devem fazer chamadas reais ao serviço.
 
-## Segurança e publicação
+## Segurança
 
-- Nunca publique `backend/.env`, API Keys, tokens ou qualquer secret.
-- Confirme o `.gitignore` antes de fazer commit.
-- Não coloque credenciais em código, documentação, logs ou bundles do frontend.
-- Trate o conteúdo dos documentos como dados, nunca como instruções executáveis.
-- Verifique `git status --short` antes de publicar alterações.
+- `GEMINI_API_KEY` fica somente no backend, em `backend/.env` ou nas variáveis de ambiente do serviço.
+- Não publique arquivos `.env`, API Keys, tokens ou outros secrets.
+- Nunca coloque a chave Gemini no frontend, em logs ou na documentação.
+- Os documentos recuperados são tratados como dados, nunca como instruções.
 
-Os documentos da Knowledge Base são tratados como dados, nunca como instruções executáveis. O agente não deve seguir instruções encontradas dentro desses documentos, e as fontes internas permanecem rastreáveis para avaliação.
+## Deploy
 
-## Deploy gratuito no Render
+O projeto pode ser publicado no Render sem banco de dados ou infraestrutura adicional. A demonstração pública está em [sapknowledgeassistant.onrender.com](https://sapknowledgeassistant.onrender.com).
 
-O projeto pode ser publicado manualmente no plano gratuito do Render, sem criar banco de dados, armazenamento persistente ou infraestrutura adicional.
+O frontend deve ser criado como um Static Site, com `frontend/` como diretório do projeto. O comando de build é `npm install && npm run build` e a pasta publicada é `frontend/dist`.
 
-O frontend deve ser criado como um Static Site. Use `frontend/` como diretório do projeto, execute `npm install && npm run build` na etapa de build e publique a pasta `frontend/dist`.
-
-O backend deve ser criado como um Web Service com o diretório raiz do repositório. Essa configuração mantém a `knowledge_base/` disponível em tempo de execução. Use o comando de build `cd backend && pip install -r requirements.txt` e inicie o servidor com Uvicorn usando a porta fornecida pelo Render:
+O backend deve ser criado como um Web Service com o diretório raiz do repositório, mantendo `knowledge_base/` disponível em tempo de execução. Use o comando de build `cd backend && pip install -r requirements.txt` e inicie o serviço com:
 
 ```text
 uvicorn app.main:app --app-dir backend --host 0.0.0.0 --port $PORT
 ```
 
-No painel do Render, configure as variáveis de ambiente do backend:
+No backend, configure `GEMINI_API_KEY`, `GEMINI_MODEL` e `FRONTEND_ORIGIN`. No Static Site, configure `VITE_API_URL` com a URL pública do Web Service. Essa variável é usada apenas no build do frontend; ela nunca deve conter a chave Gemini.
 
-- `GEMINI_API_KEY`: variável privada com a chave do Gemini;
-- `GEMINI_MODEL`: `gemini-3.5-flash-lite`;
-- `FRONTEND_ORIGIN`: URL pública do Static Site, sem incluir caminhos de API.
-
-No Static Site, configure `VITE_API_URL` com a URL pública do Web Service. Essa variável é usada apenas durante o build do frontend; nunca coloque a chave Gemini nela. O proxy do Vite continua disponível para o desenvolvimento local.
-
-O serviço gratuito do backend pode entrar em suspensão depois de um período de inatividade e voltar a responder quando receber uma nova requisição. Essa característica pode aumentar o tempo da primeira resposta após a suspensão.
+O serviço gratuito pode entrar em suspensão após um período sem uso. A primeira resposta depois disso pode levar mais tempo.
