@@ -9,16 +9,16 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .sidebar { position: fixed; inset: 0 auto 0 0; z-index: 1; width: 280px; padding: 26px 16px 22px; overflow-y: auto; border-right: 1px solid #dde3ed; background: rgba(255,255,255,.9); display: flex; flex-direction: column; }
 .brand { display: flex; align-items: center; gap: 10px; margin-top: -2px; padding: 0 4px 28px; color: #0c1a40; font-size: 16px; font-weight: 500; letter-spacing: -.2px; white-space: nowrap; }
 .brand-mark { width: 36px; height: auto; flex: 0 0 auto; display: block; }
-.new-conversation { border: 0; border-radius: 9px; background: linear-gradient(100deg, #ff9100, #ff7900); color: #fff; min-height: 45px; display: flex; align-items: center; justify-content: center; gap: 9px; font-size: 15px; box-shadow: 0 6px 14px rgba(255, 133, 0, .18); }
+.new-conversation { border: 0; border-radius: 9px; background: #009DE0; color: #fff; min-height: 45px; display: flex; align-items: center; justify-content: center; gap: 9px; font-size: 15px; box-shadow: 0 6px 14px rgba(0, 157, 224, .18); }.new-conversation:hover:not(:disabled) { background: #007CC0; }
 .new-conversation svg, .delete-current-conversation svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .sidebar-section { margin-top: 30px; }
 .sidebar-section h2 { margin: 0 6px 13px; font-size: 15px; letter-spacing: -.2px; }
 .recent-conversation { width: 100%; display: flex; align-items: center; border-left: 3px solid transparent; border-radius: 8px; margin-bottom: 3px; }
-.recent-conversation:hover { background: #fff5e9; }
-.recent-conversation.is-active { border-left-color: #ff7900; background: #fff3e5; }
+.recent-conversation:hover { background: #eef9fd; }
+.recent-conversation.is-active { border-left-color: #009DE0; background: #eaf7fd; }
 .recent-conversation-select { flex: 1; min-width: 0; padding: 11px 6px 11px 13px; overflow: hidden; border: 0; background: transparent; color: #0c1a40; text-align: left; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; line-height: 1.3; }
 .delete-conversation-icon { flex: 0 0 29px; width: 29px; height: 29px; margin-right: 5px; padding: 6px; border: 0; border-radius: 6px; background: transparent; color: #6a7899; }
-.delete-conversation-icon:hover:not(:disabled) { color: #d85f00; background: #fff; }
+.delete-conversation-icon:hover:not(:disabled) { color: #007CC0; background: #fff; }
 .delete-conversation-icon svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
 
 .main-content { min-width: 0; min-height: 100vh; margin-left: 280px; display: flex; justify-content: center; padding: 0 32px; }
@@ -42,11 +42,11 @@ h1 { margin: 0; font-size: clamp(32px, 3.5vw, 43px); line-height: 1.08; letter-s
 .send-button { min-width: 106px; height: 42px; border: 0; border-radius: 8px; color: #fff; background: linear-gradient(100deg, #ff9100, #ff7900); display: flex; align-items: center; justify-content: center; gap: 7px; font-size: 14px; font-weight: 700; box-shadow: 0 5px 12px rgba(255, 133, 0, .17); }
 .send-button svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .suggestion-area { margin-top: 21px; }.suggestion-label { margin: 0 0 9px; color: #687a9f; font-size: 12px; font-weight: 700; text-align: center; }.suggestion-row { display: flex; justify-content: center; gap: 9px; flex-wrap: wrap; }
-.suggestion-button { padding: 8px 13px; border: 1px solid #d6dfec; border-radius: 9px; background: #fff; color: #ff5d00; font-size: 12px; }.suggestion-button:hover { border-color: #ff9b4e; background: #fff9f3; }
+.suggestion-button { padding: 8px 13px; border: 1px solid #d6dfec; border-radius: 9px; background: #fff; color: #009DE0; font-size: 12px; }.suggestion-button:hover { border-color: #007CC0; color: #007CC0; background: #fff9f3; }
 .error-banner { margin-bottom: 9px; padding: 10px 13px; border-radius: 8px; background: #fff0ee; color: #a33b31; border: 1px solid #f3c3bc; font-size: 13px; }
 
 .workspace-conversation { justify-content: flex-start; padding-top: 38px; }.conversation { width: min(770px, 100%); margin: 0 auto; padding-bottom: 18px; }.conversation-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 25px; }.conversation-heading h1 { font-size: 29px; letter-spacing: -1px; }
-.delete-current-conversation { display: flex; align-items: center; gap: 6px; padding: 7px 9px; border: 1px solid #eadbd1; border-radius: 8px; background: #fff; color: #b75400; font-size: 12px; font-weight: 700; }.delete-current-conversation:hover:not(:disabled) { background: #fff7f0; }
+.delete-current-conversation { display: flex; align-items: center; gap: 6px; padding: 7px 9px; border: 1px solid #009DE0; border-radius: 8px; background: #fff; color: #009DE0; font-size: 12px; font-weight: 700; }.delete-current-conversation:hover:not(:disabled) { border-color: #007CC0; color: #007CC0; background: #eaf7fd; }
 .message { max-width: 85%; margin-bottom: 16px; padding: 14px 16px; border-radius: 12px; font-size: 14px; line-height: 1.55; }.message p { margin: 0; white-space: pre-wrap; }.answer-content p + p { margin-top: 10px; }.answer-content ul { margin: 10px 0 0; padding-left: 20px; }.answer-content p + ul, .answer-content ul + p { margin-top: 10px; }.message-user { margin-left: auto; background: #0c1a40; color: #fff; border-bottom-right-radius: 4px; }.message-assistant { background: #fff; border: 1px solid #dbe3ef; color: #22345d; border-bottom-left-radius: 4px; box-shadow: 0 4px 12px rgba(20, 45, 90, .04); }
 .message-label { margin-bottom: 5px; font-size: 10px; font-weight: 800; letter-spacing: .6px; text-transform: uppercase; opacity: .7; }.knowledge-base-note { margin-top: 12px !important; color: #7b89a4; font-size: 11px; line-height: 1.4; }
 .loading-state { display: flex; align-items: center; gap: 8px; color: #697b9f; font-size: 13px; }.loading-dot { width: 7px; height: 7px; border-radius: 50%; background: #ff8500; box-shadow: 12px 0 #ffbb70, 24px 0 #ffe1bf; margin-right: 24px; animation: pulse 1s infinite alternate; }@keyframes pulse { to { opacity: .35; } }.workspace-conversation .composer-section { width: min(770px, 100%); margin: auto auto 0; }
