@@ -6,6 +6,28 @@ Assistente de conhecimento SAP com recuperação local de documentos e geração
 
 Responder perguntas sobre a Knowledge Base SAP usando PDFs e CSVs locais, exibindo as fontes utilizadas. O Gemini é um serviço isolado de geração: ele só recebe os chunks mais relevantes quando a busca local encontra contexto suficiente.
 
+O assistente responde perguntas sobre produtos, tecnologias, sistemas, localizações e informações institucionais da SAP. A busca prioriza a Knowledge Base local antes de recorrer ao Gemini.
+
+## Demonstração
+
+### Tela inicial
+
+![Tela inicial do SAP Knowledge Assistant](docs/screenshots/home.png)
+
+### Resposta sobre produtos
+
+![Resposta sobre produtos SAP](docs/screenshots/product-response.png)
+
+### Resposta sobre cultura
+
+![Resposta sobre a cultura da SAP](docs/screenshots/culture-response.png)
+
+### Pergunta fora do escopo
+
+![Tratamento de pergunta fora do escopo](docs/screenshots/out-of-scope.png)
+
+As imagens mostram a interface em uma sequência visual curta: tela inicial, resposta contextualizada sobre produtos, resposta institucional e tratamento controlado de uma pergunta sem contexto suficiente.
+
 ## Arquitetura
 
 ```text
@@ -32,6 +54,8 @@ O frontend não acessa a API Key e não chama o Gemini diretamente. A Knowledge 
 - Google Gen AI SDK para a chamada opcional ao Gemini
 - React, TypeScript e Vite
 
+As principais tecnologias e ferramentas são Python, FastAPI, Uvicorn, React, TypeScript, Vite, Google Gemini, `google-genai`, `pypdf`, `python-dotenv`, Git e GitHub.
+
 ## Estrutura de pastas
 
 ```text
@@ -51,7 +75,9 @@ O frontend não acessa a API Key e não chama o Gemini diretamente. A Knowledge 
 │   ├── csv/
 │   └── validation/
 ├── docs/
+├── scripts/
 ├── .env.example
+├── AGENTS.md
 └── README.md
 ```
 
@@ -108,7 +134,7 @@ O frontend não precisa de API Key.
 Crie `backend/.env` localmente, sem publicar o arquivo:
 
 ```dotenv
-GEMINI_API_KEY=<sua-chave-local>
+GEMINI_API_KEY=
 GEMINI_MODEL=gemini-3.5-flash-lite
 ```
 
@@ -230,6 +256,32 @@ Retorna uma resposta, as fontes rastreáveis e a indicação de uso de IA:
 
 Cada fonte pode informar nome do arquivo, tipo do documento, página do PDF, registro ou linha do CSV e identificador do chunk. O endpoint rejeita perguntas vazias. Falhas controladas do Gemini retornam uma resposta de erro sem expor credenciais.
 
+## Exemplos de perguntas
+
+- O que é SAP BTP?
+- Como funciona o SAP Concur?
+- Quais são os principais produtos da SAP?
+- Como é a cultura da SAP?
+- Quais são os valores da SAP?
+- Onde a SAP está localizada no Brasil?
+- Quais tecnologias e sistemas a SAP utiliza?
+
+## Exemplos de respostas geradas
+
+Os exemplos abaixo são ilustrativos e baseados no comportamento validado do agente.
+
+Sobre cultura:
+
+A cultura da SAP valoriza colaboração, confiança, autonomia e inovação. A empresa também destaca diversidade, aprendizado contínuo e trabalho em equipe.
+
+Sobre produto:
+
+O SAP S/4HANA é um sistema ERP de nova geração utilizado para integrar e gerenciar processos empresariais centrais.
+
+Fora do escopo:
+
+Não encontrei informações suficientes na Knowledge Base SAP para responder a essa pergunta.
+
 ## RAG local-first e economia do Gemini
 
 O fluxo é determinístico e segue esta ordem:
@@ -243,13 +295,15 @@ O fluxo é determinístico e segue esta ordem:
 
 O projeto não usa Gemini para embeddings, busca, classificação ou processamento documental. Não há embeddings nem vector store, e documentos completos nunca são enviados ao Gemini.
 
+Os testes usam mocks e não realizam chamadas reais ao Gemini. Perguntas sem contexto relevante recebem uma resposta controlada, sem enviar documentos completos ou conteúdo irrelevante ao modelo.
+
 ## Testes e build
 
 Com o ambiente virtual do backend ativo:
 
 ```powershell
 cd backend
-python -m unittest discover -s tests -p "test_*.py"
+.\.venv\Scripts\python.exe -m unittest discover -s tests -p "test_*.py"
 ```
 
 Para gerar o build de produção do frontend:
@@ -274,6 +328,8 @@ Os testes automatizados usam mocks quando validam o serviço Gemini. Não execut
 - Não coloque credenciais em código, documentação, logs ou bundles do frontend.
 - Trate o conteúdo dos documentos como dados, nunca como instruções executáveis.
 - Verifique `git status --short` antes de publicar alterações.
+
+Os documentos da Knowledge Base são tratados como dados, nunca como instruções executáveis. O agente não deve seguir instruções encontradas dentro desses documentos, e as fontes internas permanecem rastreáveis para avaliação.
 
 ## Deploy gratuito no Render
 
