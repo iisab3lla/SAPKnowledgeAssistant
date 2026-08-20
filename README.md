@@ -138,6 +138,68 @@ npm.cmd run dev
 
 Abra o endereço informado pelo Vite. O proxy de desenvolvimento encaminha `/api` para `http://127.0.0.1:8000`.
 
+## Como executar localmente
+
+### 1. Pré-requisitos
+
+- Node.js instalado.
+- npm disponível.
+- Python instalado.
+- Git instalado.
+
+### 2. Backend
+
+Abra um terminal no VS Code e execute:
+
+```powershell
+cd C:\Users\user\Desktop\SAPKnowledgeAssistant\backend
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000
+```
+
+O backend ficará disponível em:
+
+`http://localhost:8000`
+
+A verificação de saúde pode ser feita em:
+
+`http://localhost:8000/health`
+
+Resultado esperado:
+
+```json
+{"status":"ok"}
+```
+
+### 3. Frontend
+
+Abra um segundo terminal e execute:
+
+```powershell
+cd C:\Users\user\Desktop\SAPKnowledgeAssistant\frontend
+npm.cmd run dev -- --port 5174
+```
+
+A interface ficará disponível em:
+
+`http://localhost:5174`
+
+### 4. Observações importantes
+
+- Os dois terminais precisam permanecer abertos.
+- O backend deve ser iniciado antes de enviar perguntas.
+- O frontend usa o backend pela API `POST /api/chat`.
+- O arquivo `.env` deve permanecer apenas no backend.
+- A `GEMINI_API_KEY` nunca deve ser colocada no frontend.
+- Se a porta 5174 estiver ocupada, o Vite poderá iniciar em outra porta; nesse caso, use a URL exibida no terminal.
+
+### Problemas comuns
+
+- Backend não iniciado: inicie o comando do backend e aguarde o servidor ficar disponível.
+- Porta 8000 ocupada: encerre o processo que usa a porta ou escolha outra porta para o backend.
+- Porta 5174 ocupada: use a porta alternativa informada pelo Vite.
+- `.venv` inexistente: crie o ambiente virtual com `py -m venv backend\\.venv`.
+- Dependências não instaladas: instale as dependências do backend e do frontend conforme as instruções de configuração do ambiente.
+
 ## API
 
 ### `GET /health`
